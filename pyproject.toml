@@ -1,0 +1,91 @@
+[project]
+name = "pip-stale"
+description = "Lists stale requirements and upgrade options"
+version = "0.0.1"
+readme = "README.rst"
+keywords = ["pip", "dependencies", "stale"]
+authors = [{name = "Will Kahn-Greene"}]
+license = {text = "MPLv2"}
+requires-python = ">=3.8"
+dependencies = [
+    "click",
+    "packaging",
+    "rich",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+urls.Homepage = "https://github.com/willkg/pip-stale"
+urls.Source = "https://github.com/willkg/pip-stale/"
+urls.Issues = "https://github.com/willkg/pip-stale/issues"
+
+[projects.scripts]
+pip-stale = "pip_stale:main"
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "cogapp",
+    "pytest",
+    "ruff",
+    "tox",
+    "tox-gh-actions",
+    'tomli >= 1.1.0; python_version < "3.11"',
+    "twine",
+]
+
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.ruff]
+# Enable pycodestyle (E), pyflakes (F), and bugbear (B) rules
+select = ["E", "F", "B"]
+
+# Ignore line length violations--Black handles those
+line-length = 88
+ignore = ["E501"]
+
+target-version = "py38"
+src = ["pip_stale.py"]
+
+[tool.ruff.flake8-quotes]
+docstring-quotes = "double"
+
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = True
+envlist =
+    py38
+    py39
+    py310
+    py311
+
+[gh-actions]
+python =
+    3.8: py38
+    3.9: py39
+    3.10: py310
+    3.11: py311
+
+[testenv]
+extras = dev
+commands = pytest {posargs} tests/
+"""
