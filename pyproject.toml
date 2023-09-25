@@ -28,7 +28,7 @@ urls.Homepage = "https://github.com/willkg/pip-stale"
 urls.Source = "https://github.com/willkg/pip-stale/"
 urls.Issues = "https://github.com/willkg/pip-stale/issues"
 
-[projects.scripts]
+[project.scripts]
 pip-stale = "pip_stale.main:main"
 
 [project.optional-dependencies]
