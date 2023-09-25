@@ -28,9 +28,12 @@ pip-stale is inspired by `piprot <https://pypi.org/project/piprot/>`__.
 Install and run
 ===============
 
-Install::
+This isn't on PyPI, yet, because I'm waffling on the name and whether there
+needs to exist yet another dependency version checker.
 
-    $ pipx install pip-stale
+For now, install like this::
+
+    $ pipx install https://github.com/willkg/pip-stale/archive/refs/heads/main.zip
 
 Run::
 
