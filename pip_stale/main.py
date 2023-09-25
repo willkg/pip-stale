@@ -198,16 +198,15 @@ def parse_and_check(package_specs):
 
 
 @click.command()
-@click.option("--requirements", help="Requirements file.", multiple=True)
 @click.option("--env", default=False, is_flag=True, help="This environment.")
 @click.option(
     "--error-if-updates/--no-error-if-updates",
     default=False,
     help="Exit with 1 if there are updates available.",
 )
-@click.argument("pkg", nargs=-1)
+@click.argument("pkg_or_file", nargs=-1)
 @click.pass_context
-def main(ctx, requirements, env, error_if_updates, pkg):
+def main(ctx, env, error_if_updates, pkg_or_file):
     """Determine stale requirements and upgrade options.
 
      This works on packages passed in via the command line:
@@ -218,7 +217,9 @@ def main(ctx, requirements, env, error_if_updates, pkg):
 
     This works on requirements files:
 
-        pip-stale --requirements=requirements.in
+        pip-stale requirements.in
+
+        pip-stale requirements/*.txt
 
     This works on environments and virtual environments:
 
@@ -228,18 +229,23 @@ def main(ctx, requirements, env, error_if_updates, pkg):
     console = Console()
 
     things = []
-    if pkg:
-        things.extend(pkg)
-
-    if requirements:
-        for req_file in requirements:
-            path = pathlib.Path(req_file).resolve().absolute()
-
-            if not path.exists():
-                console.print(f"[yellow]Path {path} does not exist.[/yellow]")
-                ctx.exit(1)
-
-            things.extend(path.read_text().splitlines())
+    if pkg_or_file:
+        for item in pkg_or_file:
+            item = item.strip()
+            path = pathlib.Path(item).resolve().absolute()
+            if path.exists():
+                things.extend(path.read_text().splitlines())
+            elif "==" in item:
+                things.append(item)
+            else:
+                try:
+                    get_package_info(item)
+                    things.append(item)
+                except (NotFound, UnknownError):
+                    console.print(
+                        f"[yellow]Path or package {item} does not exist.[/yellow]"
+                    )
+                    ctx.exit(1)
 
     if env:
         # The things pip does to get the list of things installed is tough, so

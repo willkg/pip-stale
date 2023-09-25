@@ -38,11 +38,11 @@ Run::
     $ pip-stale markus
     $ pip-stale markus==2.0.0
 
+    # Get version information for a requirements file
+    $ pip-stale <requirements.in>
+
     # Get version information for installed packages
     $ pip-stale --env
-
-    # Get version information for a requirements file
-    $ pip-stale --requirements=<requirements.in>
 
 .. [[[cog
    import cog
@@ -61,7 +61,7 @@ Run::
 Help text::
 
    $ pip-stale --help
-   Usage: pip-stale [OPTIONS] [PKG]...
+   Usage: pip-stale [OPTIONS] [PKG_OR_FILE]...
 
      Determine stale requirements and upgrade options.
 
@@ -73,14 +73,15 @@ Help text::
 
      This works on requirements files:
 
-         pip-stale --requirements=requirements.in
+         pip-stale requirements.in
+
+         pip-stale requirements/*.txt
 
      This works on environments and virtual environments:
 
          pip-stale --env
 
    Options:
-     --requirements TEXT             Requirements file.
      --env                           This environment.
      --error-if-updates / --no-error-if-updates
                                      Exit with 1 if there are updates available.
@@ -96,7 +97,7 @@ Quick start
    import cog
    import subprocess
    fn = "example_requirements.in"
-   ret = subprocess.run(["pip-stale", "--requirements", fn], capture_output=True)
+   ret = subprocess.run(["pip-stale", fn], capture_output=True)
    cog.out("\nExample::\n\n")
    cog.outl(f"   $ cat {fn}")
    with open(fn) as fp:
@@ -104,7 +105,7 @@ Quick start
            cog.out(f"   {line}")
 
    cog.outl("")
-   cog.outl(f"   $ pip-stale --requirements={fn}")
+   cog.outl(f"   $ pip-stale {fn}")
    for line in ret.stdout.decode("utf-8").splitlines():
        if line.strip():
            cog.outl(f"   {line}")
@@ -121,7 +122,7 @@ Example::
    requests==2.31.0
    rich==13.5.0
 
-   $ pip-stale --requirements=example_requirements.in
+   $ pip-stale example_requirements.in
     name      ┃ current version ┃ latest ┃ latest minor ┃ latest patch 
    ━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━
     click     │ 8.0.0           │ 8.1.7  │ 8.1.7        │ 8.0.4        
