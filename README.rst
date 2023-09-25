@@ -2,8 +2,9 @@
 pip-stale
 =========
 
-pip-stale is a tool for looking at a requirements.in file and noting all the
-items that are stale.
+pip-stale finds stale dependencies and most recent versions. It'll look at
+requirements files, environments, virtual environments, and command line
+specified packages.
 
 :Code:          https://github.com/willkg/pip-stale
 :Issues:        https://github.com/willkg/pip-stale/issues
