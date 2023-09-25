@@ -15,9 +15,10 @@ Goals
 
 Goals of pip-stale:
 
-1. works with a ``requirements.in`` file
-2. tells you which dependencies are stale and the most recent versions for all
-   later major versions are available--works with dependencies when you're
+1. works with command-line specified packages, ``requirements.in`` files, and
+   the environment
+2. tells you which dependencies are stale, latest version, latest minor
+   version, and latest patch version--this helps with dependencies when you're
    using LTS or are locked into an older major version
 3. straight-forward to use
 
@@ -33,30 +34,101 @@ Install::
 
 Run::
 
-    $ pip-stale <requirements.in>
+    # Get version information for a specific package
+    $ pip-stale markus
+    $ pip-stale markus==2.0.0
+
+    # Get version information for installed packages
+    $ pip-stale --env
+
+    # Get version information for a requirements file
+    $ pip-stale --requirements=<requirements.in>
+
+.. [[[cog
+   import cog
+   import subprocess
+   ret = subprocess.run(["pip-stale", "--help"], capture_output=True)
+   cog.outl("\nHelp text::\n")
+   cog.outl("   $ pip-stale --help")
+   for line in ret.stdout.decode("utf-8").splitlines():
+       if line.strip():
+           cog.outl(f"   {line}")
+       else:
+           cog.outl("")
+   cog.outl("")
+   ]]]
 
 Help text::
 
-    [[[cog
-    import cog
-    ret = subprocess.run(["pip-stale", "--help"])
-    cog.outl(ret.stdout.decode("utf-8").strip())
-    ]]]
-    [[[end]]]
+   $ pip-stale --help
+   Usage: pip-stale [OPTIONS] [PKG]...
+
+     Determine stale requirements and upgrade options.
+
+      This works on packages passed in via the command line:
+
+         pip-stale django
+
+         pip-stale django==3.2.0
+
+     This works on requirements files:
+
+         pip-stale --requirements=requirements.in
+
+     This works on environments and virtual environments:
+
+         pip-stale --env
+
+   Options:
+     --requirements TEXT             Requirements file.
+     --env                           This environment.
+     --error-if-updates / --no-error-if-updates
+                                     Exit with 1 if there are updates available.
+     --help                          Show this message and exit.
+
+.. [[[end]]]
 
 
 Quick start
 ===========
 
+.. [[[cog
+   import cog
+   import subprocess
+   fn = "example_requirements.in"
+   ret = subprocess.run(["pip-stale", "--requirements", fn], capture_output=True)
+   cog.out("\nExample::\n\n")
+   cog.outl(f"   $ cat {fn}")
+   with open(fn) as fp:
+       for line in fp:
+           cog.out(f"   {line}")
+
+   cog.outl("")
+   cog.outl(f"   $ pip-stale --requirements={fn}")
+   for line in ret.stdout.decode("utf-8").splitlines():
+       if line.strip():
+           cog.outl(f"   {line}")
+       else:
+           cog.outl("")
+   cog.outl("")
+   ]]]
+
 Example::
 
-    [[[cog
-    import cog
-    ret = subprocess.run(["pip-stale", "example_requirements.in"])
-    cog.outl("$ pip-stale example_requirements.in")
-    cog.outl(ret.stdout.decode("utf-8").strip())
-    ]]]
-    [[[end]]]
+   $ cat example_requirements.in
+   click==8.0.0
+   packaging==23.0
+   requests==2.31.0
+   rich==13.5.0
+
+   $ pip-stale --requirements=example_requirements.in
+    name      ┃ current version ┃ latest ┃ latest minor ┃ latest patch 
+   ━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━
+    click     │ 8.0.0           │ 8.1.7  │ 8.1.7        │ 8.0.4        
+    packaging │ 23.0            │ 23.1   │ 23.1         │ 23.0         
+    rich      │ 13.5.0          │ 13.5.3 │ 13.5.3       │ 13.5.3       
+
+.. [[[end]]]
 
 
 pip-stale development
