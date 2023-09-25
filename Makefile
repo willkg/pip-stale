@@ -11,7 +11,7 @@ test:  ## Run tests and linting
 
 .PHONY: lint
 lint:  ## Lint and black reformat files
-	black pip_stale.py
+	black pip_stale/
 	tox -e py38-lint
 
 .PHONY: clean

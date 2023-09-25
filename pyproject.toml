@@ -10,6 +10,7 @@ requires-python = ">=3.8"
 dependencies = [
     "click",
     "packaging",
+    "requests",
     "rich",
 ]
 classifiers = [
@@ -28,13 +29,14 @@ urls.Source = "https://github.com/willkg/pip-stale/"
 urls.Issues = "https://github.com/willkg/pip-stale/issues"
 
 [projects.scripts]
-pip-stale = "pip_stale:main"
+pip-stale = "pip_stale.main:main"
 
 [project.optional-dependencies]
 dev = [
     "black",
     "cogapp",
     "pytest",
+    "responses",
     "ruff",
     "tox",
     "tox-gh-actions",
@@ -57,7 +59,7 @@ line-length = 88
 ignore = ["E501"]
 
 target-version = "py38"
-src = ["pip_stale.py"]
+src = ["pip_stale"]
 
 [tool.ruff.flake8-quotes]
 docstring-quotes = "double"
@@ -74,6 +76,7 @@ legacy_tox_ini = """
 isolated_build = True
 envlist =
     py38
+    py38-lint
     py39
     py310
     py311
@@ -88,4 +91,11 @@ python =
 [testenv]
 extras = dev
 commands = pytest {posargs} tests/
+
+[testenv:py38-lint]
+basepython = python3.8
+changedir = {toxinidir}
+commands =
+    black --check pip_stale tests
+    ruff pip_stale tests
 """

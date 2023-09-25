@@ -5,15 +5,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from dataclasses import dataclass
-import json
 from packaging.version import parse as version_parse, InvalidVersion
 import pathlib
 import re
 import subprocess
 
-import http.client
-
 import click
+import requests
 from rich.console import Console
 from rich.table import Table
 
@@ -26,21 +24,27 @@ class UnknownError(Exception):
     pass
 
 
+# NOTE(willkg): This works, but goes against the TUF section in the spec.
+PYPI_SIMPLE_API = "https://pypi.org/simple"
+
+
 def get_package_info(package):
-    client = http.client.HTTPSConnection("pypi.org")
-    client.request(
-        "GET", f"/pypi/{package}/json", headers={"Accept": "application/json"}
-    )
-    resp = client.getresponse()
+    # Use the simple API. https://peps.python.org/pep-0691/
+    headers = {
+        "User-Agent": "pip-stale",
+        "Accept": "application/vnd.pypi.simple.v1+json",
+    }
+    url = f"{PYPI_SIMPLE_API}/{package}/"
+    resp = requests.get(url, headers=headers, allow_redirects=True, timeout=5.0)
 
-    if resp.status == 200:
-        return json.loads(resp.read().decode("utf-8"))
+    if resp.status_code == 200:
+        return resp.json()
 
-    elif resp.status == 404:
+    elif resp.status_code == 404:
         raise NotFound(f"Package {package!r} not found")
 
     raise UnknownError(
-        f"Unknown error for retrieving package data {package!r} {resp.status}"
+        f"Unknown error for retrieving package data {package!r} {resp.status_code}"
     )
 
 
@@ -94,23 +98,12 @@ def check_versions(name, version):
             error="Unknown error",
         )
 
-    if version == NO_VERSION:
-        latest_release = data["info"]["version"]
-        return VersionInfo(
-            name=name,
-            version=version,
-            latest=latest_release,
-            minor=latest_release,
-            patch=latest_release,
-            error=None,
-        )
-
     # None or a (Version, version string)
     latest_version = None
     latest_minor = None
     latest_patch = None
 
-    for release_version in data["releases"].keys():
+    for release_version in data["versions"]:
         try:
             parsed_release_version = version_parse(release_version)
         except InvalidVersion:
@@ -140,6 +133,16 @@ def check_versions(name, version):
             latest_version is None or parsed_release_version > latest_version[0]
         ):
             latest_version = (parsed_release_version, release_version)
+
+    if version == NO_VERSION:
+        return VersionInfo(
+            name=name,
+            version=version,
+            latest=latest_version[1],
+            minor=latest_version[1],
+            patch=latest_version[1],
+            error=None,
+        )
 
     return VersionInfo(
         name=name,
