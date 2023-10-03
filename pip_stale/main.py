@@ -5,6 +5,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from dataclasses import dataclass
+from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.version import parse as version_parse, InvalidVersion
 import pathlib
 import re
@@ -12,6 +14,7 @@ import subprocess
 
 import click
 import requests
+from rich import box
 from rich.console import Console
 from rich.table import Table
 
@@ -64,15 +67,19 @@ class VersionInfo:
         return not (self.version == self.latest == self.minor == self.patch)
 
 
-def check_versions(name, version):
+def check_versions(req):
     """Given a package name and version, returns a VersionInfo
 
-    :arg name: package name
-    :arg version: currently used version
+    :arg req: a Requirement instance
 
     :returns: VersionInfo
 
     """
+    name = req.name
+    # FIXME(willkg): we're only going to look at the first specifier; if
+    # we need to support multiple specifiers, we'll have to figure out what to do
+    version = sorted(req.specifier)[0].version
+
     parsed_version = version_parse(version)
     parsed_version_minor = parsed_version.major
     parsed_version_patch = (parsed_version.major, parsed_version.minor)
@@ -154,16 +161,19 @@ def check_versions(name, version):
     )
 
 
-def parse_and_check(package_specs):
-    """Take a set of "pkg" or "pkg==X.Y.Z" lines and return version info
+def parse_requirements(requirements, console, verbose=False):
+    """Take a list of "pkg" or "pkg==X.Y.Z" lines and returns Requirements
 
-    :arg package_specs: list of "pkg" or "pkg==X.Y.Z" strings
+    :arg requirements: list of "pkg" or "pkg==X.Y.Z" strings; or the lines
+        from a requirements file
+    arg console: a console to print to
+    :arg verbose: whether or not to print verbose output
 
-    :returns: generator of VersionInfo instances
+    :returns: generator of Requirement instances
 
     """
     continued_line = ""
-    for line in package_specs:
+    for line in requirements:
         if "#" in line:
             line = line[: line.find("#")]
 
@@ -178,23 +188,17 @@ def parse_and_check(package_specs):
             line = continued_line + " " + line.strip().rstrip("\\")
             continued_line = ""
 
-        parts = line.split(" ")
-        if parts[0].startswith("-"):
-            print(f"Skipping line {line!r}...")
+        # Skip over -e and -r lines
+        if line.startswith("-"):
+            if verbose:
+                console.out(f"Skipping line {line!r}...", highlight=False)
             continue
 
-        if "==" in parts[0]:
-            name, version = parts[0].split("==")
-        else:
-            name, version = parts[0], NO_VERSION
+        req = Requirement(requirement_string=line)
+        if len(req.specifier) == 0:
+            req.specifier = req.specifier & SpecifierSet("==0.0.0")
 
-        if ";" in version:
-            version = version[0 : version.find(";")]
-
-        if "[" in name:
-            name = name[: name.find("[")]
-
-        yield check_versions(name, version)
+        yield req
 
 
 @click.command()
@@ -204,9 +208,14 @@ def parse_and_check(package_specs):
     default=False,
     help="Exit with 1 if there are updates available.",
 )
+@click.option(
+    "--verbose/--no-verbose",
+    default=False,
+    help="Whether to print verbose output.",
+)
 @click.argument("pkg_or_file", nargs=-1)
 @click.pass_context
-def main(ctx, env, error_if_updates, pkg_or_file):
+def main(ctx, env, error_if_updates, verbose, pkg_or_file):
     """Determine stale requirements and upgrade options.
 
      This works on packages passed in via the command line:
@@ -267,17 +276,24 @@ def main(ctx, env, error_if_updates, pkg_or_file):
         lines = [re.sub(r"\s+", "==", line.strip()) for line in output]
         things.extend(lines)
 
-    updated_version_info = [
-        version_info
-        for version_info in parse_and_check(things)
-        if version_info.has_update() or version_info.error
-    ]
+    updated_version_info = []
+    for req in parse_requirements(things, console=console, verbose=verbose):
+        version_info = check_versions(req)
+        if version_info.has_update() or version_info.error:
+            updated_version_info.append(version_info)
+        elif verbose:
+            console.out(
+                f"{version_info.name} at {version_info.version} is up-to-date.",
+                highlight=False,
+            )
 
     if not updated_version_info:
+        if verbose:
+            console.print("All requirements up-to-date.")
         return
 
     # FIXME(willkg): offer other formats
-    table = Table(show_edge=False, show_header=True)
+    table = Table(show_edge=False, show_header=True, box=box.MARKDOWN)
     table.add_column("name")
     table.add_column("current version")
     table.add_column("latest")

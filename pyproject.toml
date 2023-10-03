@@ -99,6 +99,6 @@ commands = pytest {posargs} tests/
 basepython = python3.8
 changedir = {toxinidir}
 commands =
-    black --check pip_stale tests
+    black --diff pip_stale tests
     ruff pip_stale tests
 """
