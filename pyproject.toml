@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 urls.Homepage = "https://github.com/willkg/pip-stale"
 urls.Source = "https://github.com/willkg/pip-stale/"
@@ -80,6 +81,7 @@ envlist =
     py39
     py310
     py311
+    py312
 
 [gh-actions]
 python =
@@ -87,6 +89,7 @@ python =
     3.9: py39
     3.10: py310
     3.11: py311
+    3.12: py312
 
 [testenv]
 extras = dev
