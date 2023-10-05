@@ -30,7 +30,7 @@ urls.Source = "https://github.com/willkg/pip-stale/"
 urls.Issues = "https://github.com/willkg/pip-stale/issues"
 
 [project.scripts]
-pip-stale = "pip_stale.main:main"
+pip-stale = "pip_stale.main:pip_stale_main"
 
 [project.optional-dependencies]
 dev = [
@@ -99,6 +99,6 @@ commands = pytest {posargs} tests/
 basepython = python3.8
 changedir = {toxinidir}
 commands =
-    black --diff pip_stale tests
+    black --diff pip_stale/ tests/
     ruff pip_stale tests
 """

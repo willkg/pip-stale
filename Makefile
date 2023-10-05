@@ -9,9 +9,15 @@ help:
 test:  ## Run tests and linting
 	tox
 
+.PHONY: generatetestdata
+generatetestdata:  ## Generate test data
+	-rm tests/pypi_output.yaml
+	tox exec -e py38 -- python tests/create_data.py
+	ls -l tests/pypi_output.yaml
+
 .PHONY: lint
 lint:  ## Lint and black reformat files
-	black pip_stale/
+	tox exec -e py38-lint -- black pip_stale/ tests/
 	tox -e py38-lint
 
 .PHONY: clean
