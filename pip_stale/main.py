@@ -4,7 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import csv
 from dataclasses import dataclass
+import io
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import parse as version_parse, InvalidVersion
@@ -191,7 +193,7 @@ def parse_requirements(requirements, console, verbose=False):
         # Skip over -e and -r lines
         if line.startswith("-"):
             if verbose:
-                console.out(f"Skipping line {line!r}...", highlight=False)
+                console.print(f"Skipping line {line!r}...", highlight=False)
             continue
 
         req = Requirement(requirement_string=line)
@@ -201,8 +203,22 @@ def parse_requirements(requirements, console, verbose=False):
         yield req
 
 
-@click.command()
+@click.command(name="pip-stale")
 @click.option("--env", default=False, is_flag=True, help="This environment.")
+@click.option(
+    "--show",
+    "show_versions_value",
+    default="latest,minor,patch",
+    help="Comma-separated list of versions to show.",
+)
+@click.option(
+    "--format",
+    "format_type",
+    default="table",
+    show_default=True,
+    type=click.Choice(["table", "csv"], case_sensitive=False),
+    help="Format to print output.",
+)
 @click.option(
     "--error-if-updates/--no-error-if-updates",
     default=False,
@@ -215,7 +231,9 @@ def parse_requirements(requirements, console, verbose=False):
 )
 @click.argument("pkg_or_file", nargs=-1)
 @click.pass_context
-def main(ctx, env, error_if_updates, verbose, pkg_or_file):
+def pip_stale_main(
+    ctx, env, show_versions_value, format_type, error_if_updates, verbose, pkg_or_file
+):
     """Determine stale requirements and upgrade options.
 
      This works on packages passed in via the command line:
@@ -236,6 +254,15 @@ def main(ctx, env, error_if_updates, verbose, pkg_or_file):
 
     """
     console = Console()
+
+    show_versions = [item.strip() for item in show_versions_value.split(",")]
+    for item in show_versions:
+        if item not in ["latest", "minor", "patch"]:
+            console.print(
+                f"{item!r} from {show_versions_value!r} is not valid. "
+                + "Must be a comma-separated list of 'latest', 'minor', and 'patch'"
+            )
+            ctx.exit(1)
 
     things = []
     if pkg_or_file:
@@ -282,7 +309,7 @@ def main(ctx, env, error_if_updates, verbose, pkg_or_file):
         if version_info.has_update() or version_info.error:
             updated_version_info.append(version_info)
         elif verbose:
-            console.out(
+            console.print(
                 f"{version_info.name} at {version_info.version} is up-to-date.",
                 highlight=False,
             )
@@ -292,48 +319,80 @@ def main(ctx, env, error_if_updates, verbose, pkg_or_file):
             console.print("All requirements up-to-date.")
         return
 
-    # FIXME(willkg): offer other formats
-    table = Table(show_edge=False, show_header=True, box=box.MARKDOWN)
-    table.add_column("name")
-    table.add_column("current version")
-    table.add_column("latest")
-    table.add_column("latest minor")
-    table.add_column("latest patch")
+    if format_type == "table":
+        # FIXME(willkg): offer other formats
+        table = Table(show_edge=False, show_header=True, box=box.MARKDOWN)
+        table.add_column("name")
+        table.add_column("current version")
+        if "latest" in show_versions:
+            table.add_column("latest")
+        if "minor" in show_versions:
+            table.add_column("latest minor")
+        if "patch" in show_versions:
+            table.add_column("latest patch")
 
-    def version_or_blank(version):
-        return version if version != NO_VERSION else ""
+        def colorize(version, new_version):
+            if not version:
+                return
 
-    def colorize(version, new_version):
-        if not version:
-            return
+            if version == new_version:
+                return new_version
+            else:
+                return f"[green]{new_version}[/green]"
 
-        if version == new_version:
-            return new_version
-        else:
-            return f"[green]{new_version}[/green]"
+        for version_info in updated_version_info:
+            if version_info.error:
+                table.add_row(
+                    version_info.name,
+                    version_info.version,
+                    version_info.error,
+                )
+                continue
 
-    for version_info in updated_version_info:
-        if version_info.error:
-            table.add_row(
-                version_info.name,
-                version_or_blank(version_info.version),
-                version_info.error,
-            )
-            continue
+            row = [version_info.name, version_info.version]
+            if "latest" in show_versions:
+                row.append(colorize(version_info.version, version_info.latest))
+            if "minor" in show_versions:
+                row.append(colorize(version_info.version, version_info.minor))
+            if "patch" in show_versions:
+                row.append(colorize(version_info.version, version_info.patch))
+            table.add_row(*row)
 
-        table.add_row(
-            version_info.name,
-            version_or_blank(version_info.version),
-            colorize(version_info.version, version_info.latest),
-            colorize(version_or_blank(version_info.version), version_info.minor),
-            colorize(version_or_blank(version_info.version), version_info.patch),
-        )
+        console.print(table)
 
-    console.print(table)
+    elif format_type == "csv":
+        buffer = io.StringIO()
+        csvwriter = csv.writer(buffer)
+        headers = ["name", "current version"]
+        if "latest" in show_versions:
+            headers.append("latest")
+        if "minor" in show_versions:
+            headers.append("latest minor")
+        if "patch" in show_versions:
+            headers.append("latest patch")
+        csvwriter.writerow(headers)
+        for version_info in updated_version_info:
+            if version_info.error:
+                csvwriter.writerow(
+                    [version_info.name, version_info.version, version_info.error]
+                )
+                continue
+
+            row = [version_info.name, version_info.version]
+            if "latest" in show_versions:
+                row.append(version_info.latest)
+            if "minor" in show_versions:
+                row.append(version_info.minor)
+            if "patch" in show_versions:
+                row.append(version_info.patch)
+            csvwriter.writerow(row)
+
+        for line in buffer.getvalue().splitlines():
+            console.print(line, highlight=False)
 
     if error_if_updates:
         ctx.exit(1)
 
 
 if __name__ == "__main__":
-    main()
+    pip_stale_main()

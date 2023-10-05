@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import textwrap
+
 from click.testing import CliRunner
 import pytest
 import responses
@@ -14,11 +16,144 @@ from pip_stale import main
 def test_it_runs():
     runner = CliRunner()
     result = runner.invoke(
-        cli=main.main,
+        cli=main.pip_stale_main,
         args=["--help"],
         env={"COLUMNS": "100"},
     )
     assert result.exit_code == 0
+
+
+@responses.activate
+def test_package_no_version():
+    responses.patch("https://pypi.org/simple/markus/")
+    responses._add_from_file(file_path="tests/pypi_output.yaml")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli=main.pip_stale_main,
+        args=["--format=csv", "markus"],
+        env={"COLUMNS": "100"},
+    )
+    assert result.exit_code == 0
+    assert result.output == textwrap.dedent(
+        """\
+        name,current version,latest,latest minor,latest patch
+        markus,0.0.0,4.2.0,4.2.0,4.2.0
+        """
+    )
+
+
+@responses.activate
+def test_package_version():
+    responses.patch("https://pypi.org/simple/markus/")
+    responses._add_from_file(file_path="tests/pypi_output.yaml")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli=main.pip_stale_main,
+        args=["--format=csv", "markus==2.0.0"],
+        env={"COLUMNS": "100"},
+    )
+    assert result.exit_code == 0
+    assert result.output == textwrap.dedent(
+        """\
+        name,current version,latest,latest minor,latest patch
+        markus,2.0.0,4.2.0,2.2.0,2.0.0
+        """
+    )
+
+
+@responses.activate
+def test_package_doesnt_exist():
+    responses.patch("https://pypi.org/simple/nonexistent-package/")
+    responses._add_from_file(file_path="tests/pypi_output.yaml")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli=main.pip_stale_main,
+        args=["--format=csv", "nonexistent-package"],
+        env={"COLUMNS": "100"},
+    )
+    print(result.output)
+    assert result.exit_code == 1
+    assert result.output == "Path or package nonexistent-package does not exist.\n"
+
+
+@responses.activate
+def test_requirements():
+    responses.patch("https://pypi.org/simple/markus/")
+    responses._add_from_file(file_path="tests/pypi_output.yaml")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli=main.pip_stale_main,
+        args=["--format=csv", "tests/requirements.txt"],
+        env={"COLUMNS": "100"},
+    )
+    assert result.exit_code == 0
+    assert result.output == textwrap.dedent(
+        """\
+        name,current version,latest,latest minor,latest patch
+        markus,2.0.0,4.2.0,2.2.0,2.0.0
+        nonexistent-package,1.0.0,Not found
+        """
+    )
+
+
+@pytest.mark.parametrize(
+    "showvalue, expected",
+    [
+        (
+            "latest",
+            textwrap.dedent(
+                """\
+                name,current version,latest
+                markus,2.0.0,4.2.0
+                """
+            ),
+        ),
+        (
+            "minor",
+            textwrap.dedent(
+                """\
+                name,current version,latest minor
+                markus,2.0.0,2.2.0
+                """
+            ),
+        ),
+        (
+            "patch",
+            textwrap.dedent(
+                """\
+                name,current version,latest patch
+                markus,2.0.0,2.0.0
+                """
+            ),
+        ),
+        (
+            "latest,minor",
+            textwrap.dedent(
+                """\
+                name,current version,latest,latest minor
+                markus,2.0.0,4.2.0,2.2.0
+                """
+            ),
+        ),
+    ],
+)
+@responses.activate
+def test_package_show(showvalue, expected):
+    responses.patch("https://pypi.org/simple/markus/")
+    responses._add_from_file(file_path="tests/pypi_output.yaml")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli=main.pip_stale_main,
+        args=["--format=csv", f"--show={showvalue}", "markus==2.0.0"],
+        env={"COLUMNS": "100"},
+    )
+    assert result.exit_code == 0
+    assert result.output == expected
 
 
 @pytest.mark.parametrize(

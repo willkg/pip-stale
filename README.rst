@@ -36,16 +36,19 @@ For now, install like this::
 
     $ pipx install https://github.com/willkg/pip-stale/archive/refs/heads/main.zip
 
-Run::
+Examples::
 
     # Get version information for a specific package
     $ pip-stale markus
     $ pip-stale markus==2.0.0
 
-    # Get version information for a requirements file
-    $ pip-stale <requirements.in>
+    # Show just the latest version with CSV output
+    $ pip-stale --format=csv --show=latest markus
 
-    # Get version information for installed packages
+    # Get version information for a requirements file
+    $ pip-stale requirements.in
+
+    # Get version information for packages installed in the environment
     $ pip-stale --env
 
 .. [[[cog

@@ -1,0 +1,6 @@
+-e .
+-r some_other_requirements_file.txt
+
+# Some comments about markus
+markus==2.0.0
+nonexistent-package==1.0.0
