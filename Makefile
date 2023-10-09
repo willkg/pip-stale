@@ -28,4 +28,4 @@ clean:  ## Clean build artifacts
 
 .PHONY: docs
 docs:  ## Runs cog
-	python -m cogapp -r README.rst
+	tox exec -e py38 -- python -m cogapp -r README.rst
