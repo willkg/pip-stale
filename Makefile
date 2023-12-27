@@ -15,9 +15,12 @@ generatetestdata:  ## Generate test data
 	tox exec -e py38 -- python tests/create_data.py
 	ls -l tests/pypi_output.yaml
 
+.PHONY: format
+format:  ## Format files
+	tox exec -e py38-lint -- ruff format
+
 .PHONY: lint
-lint:  ## Lint and black reformat files
-	tox exec -e py38-lint -- black pip_stale/ tests/
+lint:  ## Lint files
 	tox -e py38-lint
 
 .PHONY: clean

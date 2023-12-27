@@ -34,7 +34,6 @@ pip-stale = "pip_stale.main:pip_stale_main"
 
 [project.optional-dependencies]
 dev = [
-    "black",
     "cogapp",
     "pytest",
     "responses",
@@ -66,11 +65,6 @@ src = ["pip_stale"]
 docstring-quotes = "double"
 
 
-[tool.black]
-line-length = 88
-target-version = ["py38"]
-
-
 [tool.tox]
 legacy_tox_ini = """
 [tox]
@@ -99,6 +93,6 @@ commands = pytest {posargs} tests/
 basepython = python3.8
 changedir = {toxinidir}
 commands =
-    black --diff pip_stale/ tests/
-    ruff pip_stale tests
+    ruff format --check pip_stale tests
+    ruff check pip_stale tests
 """
