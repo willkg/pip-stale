@@ -183,11 +183,15 @@ def parse_requirements(requirements, console, verbose=False):
             continue
 
         if line.strip().endswith("\\"):
-            continued_line = continued_line + line.strip().rstrip("\\")
+            if not line.strip().startswith("--hash"):
+                continued_line = continued_line + line.strip().rstrip("\\")
             continue
 
         if continued_line:
-            line = continued_line + " " + line.strip().rstrip("\\")
+            if not line.strip().startswith("--hash"):
+                line = continued_line + " " + line.strip().rstrip("\\")
+            else:
+                line = continued_line
             continued_line = ""
 
         # Skip over -e and -r lines
