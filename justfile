@@ -19,20 +19,20 @@ test: devenv
 # Generate test data
 generatetestdata: devenv
     -rm tests/pypi_output.yaml
-    tox exec -e py38 -- python tests/create_data.py
+    tox exec -e py39 -- python tests/create_data.py
     ls -l tests/pypi_output.yaml
 
 # Format files
 format:
-    tox exec -e py38-lint -- ruff format
+    tox exec -e py39-lint -- ruff format
 
 # Lint files
 lint:
-    tox -e py38-lint
+    tox -e py39-lint
 
 # Generate docs
 docs: devenv
-    tox exec -e py38-lint -- python -m cogapp -r README.rst
+    tox exec -e py39-lint -- python -m cogapp -r README.rst
 
 # Build release packages
 build: devenv
