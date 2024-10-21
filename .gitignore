@@ -11,6 +11,8 @@ eggs/
 sdist/
 *.egg-info/
 *.egg
+uv.lock
+.venv
 
 # Unit test / coverage reports
 .tox/

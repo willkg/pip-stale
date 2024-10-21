@@ -34,7 +34,7 @@ needs to exist yet another dependency version checker.
 
 For now, install like this::
 
-    $ pipx install https://github.com/willkg/pip-stale/archive/refs/heads/main.zip
+    $ uv tool install https://github.com/willkg/pip-stale/archive/refs/heads/main.zip
 
 Examples::
 
@@ -136,8 +136,9 @@ Example::
     name      | current version | latest | latest minor | latest patch 
    -----------|-----------------|--------|--------------|--------------
     click     | 8.0.0           | 8.1.7  | 8.1.7        | 8.0.4        
-    packaging | 23.0            | 23.2   | 23.2         | 23.0         
-    rich      | 13.5.0          | 13.6.0 | 13.6.0       | 13.5.3       
+    packaging | 23.0            | 24.1   | 23.2         | 23.0         
+    requests  | 2.31.0          | 2.32.3 | 2.32.3       | 2.31.0       
+    rich      | 13.5.0          | 13.9.2 | 13.9.2       | 13.5.3       
 
 .. [[[end]]]
 
@@ -147,14 +148,14 @@ pip-stale development
 
 ::
 
-    pip install -e '.[dev]'
+    just devenv
 
 
 Then you can do these things::
 
-    make lint
-    make test
-    make docs
+    just lint
+    just test
+    just docs
 
 
 Why not other tools?
